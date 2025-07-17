@@ -1,0 +1,35 @@
+package com.naresh.controller;
+
+import com.naresh.model.CartItem;
+import com.naresh.model.Product;
+import com.naresh.service.CartService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.*;
+
+import java.security.Principal;
+import java.util.List;
+@RequiredArgsConstructor
+@RestController
+@RequestMapping("/api/v1/product/cart")
+public class CartController {
+   private final CartService cartService;
+    @GetMapping("/getCart")
+    public List<Product> getCart(@AuthenticationPrincipal Jwt jwt) {
+        return cartService.getCart(jwt);
+    }
+    @PostMapping("/addToCart")
+    public ResponseEntity<String> addToCart(@RequestBody Long id,@AuthenticationPrincipal Jwt jwt){
+        System.out.println(id);
+        return  ResponseEntity.ok(cartService.addToCart(id, jwt));
+    }
+    @DeleteMapping("/removeFromCart")
+    public void removeFromCart(@RequestBody Long id,@AuthenticationPrincipal Jwt jwt) {
+        cartService.removeFromCart(id, jwt);
+    }
+}
