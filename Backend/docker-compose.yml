@@ -1,41 +1,108 @@
 services:
-  zookeeper:
-    image: confluentinc/cp-zookeeper:latest
-    container_name: zookeeper
-    environment:
-      ZOOKEEPER_SERVER_ID: 1
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
+  config-server:
+    build:
+      context: ./services/config-server
     ports:
-      - "2181:2181"
+      - "8888:8888"
     networks:
       - jaggery-net
-  kafka:
-    image: confluentinc/cp-kafka:latest
-    container_name: kafka
+
+  discovery-server:
+    build:
+      context: ./services/discovey-server
     ports:
-      - "9092:9092"
+      - "8761:8761"
     depends_on:
-      - zookeeper
-    environment:
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      - config-server
     networks:
-       - jaggery-net
-  mail-dev:
-    container_name: ms-mail-dev
-    image: maildev/maildev
+      - jaggery-net
+    command: ["./wait-for-it.sh", "config-server:8888", "--", "java", "-jar", "discovery-server.jar"]
+
+  api-gateway:
+    build:
+      context: ./services/api-gateway
     ports:
-      - 1080:1080
-      - 1025:1025
+      - "8222:8222"
+    depends_on:
+      - config-server
+      - discovery-server
+    networks:
+      - jaggery-net
+    command: ["./wait-for-it.sh", "discovery-server:8761", "--", "java", "-jar", "api-gateway.jar"]
 
+  auth-service:
+    build:
+      context: ./services/auth-service
+    ports:
+      - "9090:9090"
+    depends_on:
+      - config-server
+      - discovery-server
+    networks:
+      - jaggery-net
+    command: ["./wait-for-it.sh", "discovery-server:8761", "--", "java", "-jar", "auth-service.jar"]
 
+  customer-service:
+    build:
+      context: ./services/customer-service
+    ports:
+      - "8081:8081"
+    depends_on:
+      - config-server
+      - discovery-server
+    networks:
+      - jaggery-net
+    command: ["./wait-for-it.sh", "discovery-server:8761", "--", "java", "-jar", "customer-service.jar"]
+
+  product-service:
+    build:
+      context: ./services/product-service
+    ports:
+      - "8082:8082"
+    depends_on:
+      - config-server
+      - discovery-server
+    networks:
+      - jaggery-net
+    command: ["./wait-for-it.sh", "discovery-server:8761", "--", "java", "-jar", "product-service.jar"]
+
+  order-service:
+    build:
+      context: ./services/order-service
+    ports:
+      - "8084:8084"
+    depends_on:
+      - config-server
+      - discovery-server
+    networks:
+      - jaggery-net
+    command: ["./wait-for-it.sh", "discovery-server:8761", "--", "java", "-jar", "order-service.jar"]
+
+  payment-service:
+    build:
+      context: ./services/payment-service
+    ports:
+      - "8085:8085"
+    depends_on:
+      - config-server
+      - discovery-server
+    networks:
+      - jaggery-net
+    command: ["./wait-for-it.sh", "discovery-server:8761", "--", "java", "-jar", "payment-service.jar"]
+
+  notification-service:
+    build:
+      context: ./services/notification-service
+    ports:
+      - "8083:8083"
+    depends_on:
+      - config-server
+      - discovery-server
+    networks:
+      - jaggery-net
+    command: ["./wait-for-it.sh", "discovery-server:8761", "--", "java", "-jar", "notification-service.jar"]
 
 
 networks:
-  jaggery-net:
+  jaggery-net :
     driver: bridge
